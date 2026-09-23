@@ -1,0 +1,30 @@
+34368122880
+Elapsed: 6.630694ms
+34368122880
+Elapsed: 6.530856ms
+34368122880
+Elapsed: 6.948174ms
+34368122880
+Elapsed: 6.856911ms
+34368122880
+Elapsed: 7.225918ms
+34368122880
+Elapsed: 6.550864ms
+34368122880
+Elapsed: 6.518312ms
+34368122880
+Elapsed: 6.433842ms
+34368122880
+Elapsed: 6.410679ms
+34368122880
+Elapsed: 7.302063ms
+
+ Performance counter stats for './target/release/homework1 rows' (10 runs):
+
+       334 227 422      cycles                                                                  ( +-  1,43% )
+       274 508 645      instructions                     #    0,82  insn per cycle              ( +-  0,18% )
+       123 287 525      L1-dcache-loads                                                         ( +-  0,34% )
+         8 948 999      L1-dcache-load-misses            #    7,26% of all L1-dcache accesses   ( +-  0,24% )
+
+           0,08852 +- 0,00285 seconds time elapsed  ( +-  3,22% )
+

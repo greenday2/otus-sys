@@ -1,0 +1,30 @@
+34368122880
+Elapsed: 104.585194ms
+34368122880
+Elapsed: 102.03665ms
+34368122880
+Elapsed: 140.819364ms
+34368122880
+Elapsed: 102.499194ms
+34368122880
+Elapsed: 102.400798ms
+34368122880
+Elapsed: 102.659675ms
+34368122880
+Elapsed: 103.991192ms
+34368122880
+Elapsed: 229.731013ms
+34368122880
+Elapsed: 160.387785ms
+34368122880
+Elapsed: 350.167597ms
+
+ Performance counter stats for './target/release/homework1 columns' (10 runs):
+
+       942 493 992      cycles                                                                  ( +- 11,41% )
+       345 128 394      instructions                     #    0,37  insn per cycle              ( +-  0,20% )
+       143 172 667      L1-dcache-loads                                                         ( +-  4,10% )
+        29 775 124      L1-dcache-load-misses            #   20,80% of all L1-dcache accesses   ( +- 13,22% )
+
+            0,2294 +- 0,0257 seconds time elapsed  ( +- 11,22% )
+
