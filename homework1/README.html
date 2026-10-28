@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<title>README.html</title>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+
+</head>
+
+<body>
+
+<h1>L1 Norm Benchmark (Rust)</h1>
+<p>Небольшая программа на Rust для вычисления L1-нормы квадратной матрицы двумя способами:</p>
+<ul>
+<li><strong><code>rows</code></strong> — обход по строкам (cache-friendly, суммы накапливаются по столбцам);</li>
+<li><strong><code>columns</code></strong> — обход по столбцам (cache-unfriendly, типичный пример плохой локальности данных).</li>
+</ul>
+<h2>Требования</h2>
+<ul>
+<li><a href="https://www.rust-lang.org/tools/install">Rust</a> (stable)</li>
+<li><code>cargo</code> (устанавливается вместе с Rust)</li>
+<li><code>perf</code> (Linux) — для сбора метрик производительности</li>
+</ul>
+<h2>Сборка проекта</h2>
+<p>Отладочная сборка:
+<code>bash
+cargo build</code></p>
+<p>Оптимизированная сборка (рекомендуется для замеров и метрик):
+<code>bash
+cargo build --release</code></p>
+<h2>Запуск</h2>
+<p>Программа принимает один обязательный аргумент — способ обхода: <code>rows</code> или <code>columns</code>.</p>
+<p>Через <code>cargo</code>:
+<code>bash
+cargo run --release -- rows
+cargo run --release -- columns</code></p>
+<p>Либо напрямую из собранного бинарника:
+<code>bash
+./target/release/homework1 rows
+./target/release/homework1 columns</code></p>
+<p>Пример вывода:
+<code>34368122880
+Elapsed: 6.630694ms</code></p>
+<p>Если аргумент отсутствует или некорректен — программа завершится с кодом ошибки и подсказкой:
+<code>Argument "rows" or "columns" is needed!</code>
+<code>Argument must be "rows" or "columns"!</code></p>
+<h2>Сбор метрик через perf</h2>
+<p>Для корректных метрик используйте <strong>release-сборку</strong> и запускайте <code>sudo perf</code> на бинарнике напрямую (а не через <code>cargo run</code>).</p>
+<p><code>bash
+sudo perf stat -r 10 -e cycles,instructions,L1-dcache-loads,L1-dcache-load-misses \
+    ./target/release/homework1 rows</code></p>
+<p><code>bash
+sudo perf stat -r 10 -e cycles,instructions,L1-dcache-loads,L1-dcache-load-misses \
+    ./target/release/homework1 columns</code></p>
+<p>Пример вывода:
+```
+ Performance counter stats for './target/release/homework1 rows' (10 runs):</p>
+<pre><code>  334 227 422      cycles                                                                  ( +-  1,43% )
+  274 508 645      instructions                     #    0,82  insn per cycle              ( +-  0,18% )
+  123 287 525      L1-dcache-loads                                                         ( +-  0,34% )
+    8 948 999      L1-dcache-load-misses            #    7,26% of all L1-dcache accesses   ( +-  0,24% )
+
+      0,08852 +- 0,00285 seconds time elapsed  ( +-  3,22% )
+</code></pre>
+<p>Performance counter stats for './target/release/homework1 columns' (10 runs):</p>
+<pre><code> 1 567 890 014      cycles                                                                  ( +- 16,57% )
+   347 177 149      instructions                     #    0,22  insn per cycle              ( +-  0,39% )
+   176 527 098      L1-dcache-loads                                                         ( +-  7,09% )
+    51 574 931      L1-dcache-load-misses            #   29,22% of all L1-dcache accesses   ( +- 16,11% )
+
+        0,3827 +- 0,0632 seconds time elapsed  ( +- 16,51% )
+</code></pre>
+<p>```</p>
+<p>Для варианта <code>columns</code> ожидаемо <strong>больше промахов L1-dcache</strong> и <strong>ниже IPC</strong>, поскольку обход по столбцам плохо использует кэш.</p>
+<h2>Примечания</h2>
+<ul>
+<li>Матрица имеет фиксированный размер <code>4096 × 4096</code> элементов типа <code>u64</code> (см. <code>matrix_size</code> в <code>main.rs</code>). При необходимости измените значение в исходном коде.</li>
+<li>Названия событий <code>L1-dcache-*</code> поддерживаются на архитектуре x86. На других платформах список доступных событий можно посмотреть командой:
+  <code>bash
+  perf list</code></li>
+</ul>
+<h2>Пояснение результатов</h2>
+<p>Согласно официальным руководствам AMD по оптимизации размер кэш-линии L1 Data Cache на современных процессорах AMD64 составляет <strong>64 байта</strong>. У процессоров Intel — тот же размер. Это значит, что любое обращение к памяти читает не «8 байт», а «64 байта».</p>
+<p><strong>Параметры матрицы</strong>: В коде задана квадратная матрица размером 4096 × 4096 элементов типа <code>u64</code>, размер каждого элемента составляет 8 байт.
+Если бы каждая байтовая позиция памяти читалась ровно один раз (идеальный случай), потребовалось бы прочитать:</p>
+<p><code>4096 × 4096 × 8 байт / 64 байта = 2 097 152 кэш-линий</code></p>
+<h3>Фактические данные из профилировщика</h3>
+<p>| Метрика | rows | columns |
+|---------|------|---------|
+| L1-dcache-loads | 123 287 525 | 143 172 667 |
+| L1-dcache-load-misses | 8 948 999 | 29 775 124 |
+| Доля промахов | 7,26 % | 20,80 % |
+| IPC | 0,82 | 0,37 |
+| Время (среднее) | ~0,0885 с | ~0,2294 с |</p>
+<p>Число промахов L1 приблизительно равно числу <strong>уникальных кэш-линий, подтянутых из памяти</strong> (L2/L3/RAM), потому что каждая промахнувшаяся загрузка инициирует выборку целой 64-байтовой линии.</p>
+<ul>
+<li><strong>rows</strong>: ~8,95 млн кэш-линий загружено из памяти;</li>
+<li><strong>columns</strong>: ~29,78 млн кэш-линий загружено из памяти.</li>
+</ul>
+<h3>Объём «бесполезно» прочитанной памяти</h3>
+<p>При обходе по столбцам в каждой подтянутой кэш-линии реально используется только <strong>8 байт из 64</strong> (один элемент <code>u64</code>). Остальные <strong>56 байт (87,5 %)</strong> загружаются впустую и затем вытесняются, так как соседние элементы по строке не нужны до следующей итерации внешнего цикла — а к тому моменту линия уже выброшена из L1.</p>
+<p>Объём бесполезного трафика:</p>
+<p><code>(29 775 124 − 2 097 152) × 64 байта ≈ 1,77 ГБ</code></p>
+<p>То есть почти <strong>1,8 ГБ оперативной памяти прокачивается зря</strong> только из-за неудачного порядка обхода. У варианта <code>rows</code> этот показатель тоже ненулевой, но гораздо меньший, поскольку каждая загруженная линия используется полностью — все 8 элементов <code>u64</code> подряд.</p>
+<hr />
+<h2>Вывод</h2>
+<p>Последовательный обход (вариант <code>rows</code>) оптимален (для amd64!), потому что одновременно выполняются три условия:</p>
+<ol>
+<li><strong>Аппаратный префетчер</strong> распознаёт шаблон обращения к адресам и заранее подтягивает данные в L1 → низкая доля промахов (7,26 %).</li>
+<li><strong>Каждая кэш-линия используется полностью</strong> (все 64 байта / 8 элементов <code>u64</code>)</li>
+<li><strong>Цикл возможно векторизуется (но не в debug)</strong> в SIMD-инструкции AVX2/AVX-512 → высокая пропускная способность, IPC = 0,82 против 0,37.</li>
+</ol>
+<p>Вариант <code>columns</code> все три пункта нарушены: префетчер не срабатывает, 87,5 % каждой кэш-линии уходит в мусор (≈1,77 ГБ лишнего трафика), векторизация невозможна. Результат — в <strong>2,6 раза больше времени</strong> выполнения (0,229 с против 0,089 с) и почти в <strong>3 раза больше промахов L1</strong>.</p>
+</body>
+</html>
